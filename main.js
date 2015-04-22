@@ -1,187 +1,194 @@
+/*
+TODO:
+-dynamic resizing
+-time selector
+*/
 var ds;
-d3.json("data.json", function(error, data){
-	if(error) {
-		console.log(error);
-	} else {
-		console.log(error);
-		
-		ds = _.filter(data, function(element){
-			return element["feedName"]=== "wifi_session";
-		});
-		
-		//ds=data;
-		console.log("output ds");
-		//console.log(ds);
-		console.log(ds.length);
-	}
-	buildLine();
+d3.json("data.json", function(error, data) {
+    if (error) {
+        console.log(error);
+    } else {
+        ds = _.filter(data, function(element) {
+            return element["feedName"] === "wifi_session";
+        });
+    }
+    buildLine();
 })
 
-var buildLine = function(){
-	var h=500;
-	var w=5000;
-	var areaBands = d3.svg.area();
-	areaBands.x(function(d, i){
-			var finalX = i*(w/ds.length);
-			finalX = Math.floor(finalX);
-			return finalX;});
-	areaBands.y0(function(d){
-			var finalY = h-(d.rowDailyCount/30000);
-			console.log("finalY");
-			finalY = Math.floor(finalY);
-			console.log(finalY);
-			return finalY-100;
-		});
-	areaBands.y1(function(d){
-		var finalY = h-(d.rowDailyCount/30000);
-		console.log("finalY");			
-		finalY = Math.floor(finalY);
-		console.log(finalY);
-		return finalY+100;
-	});
-	var lineFunc= d3.svg.line()
-		.x(function(d, i){
-			var finalX = i*(w/ds.length);
-			
-			//console.log("finalX");
-			
-			finalX = Math.floor(finalX);
-			//console.log(finalX);
-			return finalX;
-		})
-		.y(function(d){
-			var finalY = h-(d.rowDailyCount/30000);
-			console.log("finalY");
-			
-			finalY = Math.floor(finalY);
-			console.log(finalY);
-			return finalY;
-		})
-	.interpolate("monotone");
+var buildLine = function() {
+    var h = 500;
+    var w = 25000;
+    var margin = {
+        top: 40,
+        right: 40,
+        bottom: 40,
+        left: 80
+    };
 
-	var svg= d3.select("body").append("svg").attr({width: w,height: h});
-
-	var areaChart=svg.append("path").attr({
-		d: areaBands(ds),
-		"stroke":"#C2C2C2", 
-		"stroke-width": 1,
-		"fill": "#C2C2C2"
-	});
-	var lineChart=svg.append("path").attr({
-		d:lineFunc(ds), 
-		"stroke":"black", 
-		"stroke-width": 2,
-		"fill": "none"
-	});
-	var dots= svg.selectAll("circle")
-		.data(ds)
-		.enter()
-		.append("circle")
-	.attr({
-		cx:function(d, i){
-			var finalX = i*(w/ds.length);
-			finalX = Math.floor(finalX);
-			return finalX;}, 
-		cy:function(d){
-			var finalY = h-(d.rowDailyCount/30000);
-			//console.log("finalY");
-			
-			finalY = Math.floor(finalY);
-			//console.log(finalY);
-			return finalY;
-		},
-		r: 3,
-		"fill": function(d){
-			console.log(d["indicator"]);
-			if(d["indicator"]==="N") {
-				return "black"
-			} else {
-				return "red"
-			}
-		}
-	});
-};
-
-/*
-function print_filter(filter){
-	var f=eval(filter);
-	if (typeof(f.length) != "undefined") {}else{}
-	if (typeof(f.top) != "undefined") {f=f.top(Infinity);}else{}
-	if (typeof(f.dimension) != "undefined") {f=f.dimension(function(d) { return "";}).top(Infinity);}else{}
-	console.log(filter+"("+f.length+") = "+JSON.stringify(f).replace("[","[\n\t").replace(/}\,/g,"},\n\t").replace("]","\n]"));
-} 
-var data = [
-		{date: "12/27/2012", http_404: 2, http_200: 190, http_302: 100},
-		{date: "12/28/2012", http_404: 2, http_200: 10, http_302: 100},
-		{date: "12/29/2012", http_404: 1, http_200: 300, http_302: 200},
-		{date: "12/30/2012", http_404: 2, http_200: 90, http_302: 0},
-		{date: "12/31/2012", http_404: 2, http_200: 90, http_302: 0},
-		{date: "01/01/2013", http_404: 2, http_200: 90, http_302: 0},
-		{date: "01/02/2013", http_404: 1, http_200: 10, http_302: 1},
-		{date: "01/03/2013", http_404: 2, http_200: 90, http_302: 0},
-		{date: "01/04/2013", http_404: 2, http_200: 90, http_302: 0},
-		{date: "01/05/2013", http_404: 2, http_200: 90, http_302: 0},
-		{date: "01/06/2013", http_404: 2, http_200: 200, http_302: 1},
-		{date: "01/07/2013", http_404: 1, http_200: 200, http_302: 100}
-		];
-var ndx = crossfilter(data);
- 
-var parseDate = d3.time.format("%m/%d/%Y").parse;
-data.forEach(function(d) {
-	d.date = parseDate(d.date);
-	d.total= d.http_404+d.http_200+d.http_302;
-});
-print_filter("data");
-var dateDim = ndx.dimension(function(d) {return d.date;});
-var hits = dateDim.group().reduceSum(function(d) {return d.total;}); 
-console.log("hits");
-print_filter("hits");
-console.log(hits);
-var minDate = dateDim.bottom(1)[0].date;
-var maxDate = dateDim.top(1)[0].date;
-
-var hitslineChart  = dc.lineChart("#chart-line-hitsperday"); 
-
-hitslineChart
-	.width(500).height(200)
-	.dimension(dateDim)
-	.group(hits)
-	.x(d3.time.scale().domain([minDate,maxDate])).brushOn(true).yAxisLabel("Hits per day")  ; 
-	dc.renderAll(); 
-*/	
+	//format to parse the day field in our data.
+    var format = d3.time.format("%m/%d/%y");
 	
-//var totalDim = ndx.dimension(function(d) { return d.total; });
-//var total_90 = totalDim.filter(90);
-//print_filter(total_90);
+	//calcualte the ceiling for data plot. Increase 30% for padding.
+    var yCeiling = d3.max(ds, function(d) {
+        return parseInt(d.rowDailyCount);
+    });
+    yCeiling = Math.floor(yCeiling * 1.3);
 
+    var yScale = d3.scale.linear()
+        .domain([0, yCeiling])
+        .range([h - margin.bottom, margin.top]);
 
+    var xScale = d3.time.scale()
+        .domain([format.parse(ds[0].day), format.parse(ds[ds.length - 1].day)])
+        .rangeRound([margin.left, w - margin.right]);
 
+    var yAxis = d3.svg.axis().scale(yScale).orient("left").ticks(8)
+        .tickSize(-w + margin.right + margin.left, 0, 0)
+        .tickPadding(8);;
 
-/*
-var quarter = ndx.dimension(function (d) {
-       var month = d.dd.getMonth();
-       if (month <= 2) {
-           return 'Q1';
-       } else if (month > 2 && month <= 5) {
-           return 'Q2';
-       } else if (month > 5 && month <= 8) {
-           return 'Q3';
-       } else {
-           return 'Q4';
-       }
-   });
-   
-   var quarterGroup = quarter.group().reduceSum(function (d) {
-           return d.volume;
-       });
-var chart1 = dc.pieChart("#chart-container1");
-quarterChart.width(180)
-        .height(180)
-        .radius(80)
-        .innerRadius(30)
-        .dimension(quarter)
-        .group(quarterGroup);
+    var xAxis = d3.svg.axis()
+        .scale(xScale)
+        .orient('bottom')
+        .ticks(d3.time.days, 1)
+        .tickFormat(d3.time.format('%a %m/%d'))
+        .tickSize(-h + margin.top + margin.bottom, 0, 0)
+        .tickPadding(8);
+
+    var areaBandsFunc = d3.svg.area().interpolate("monotone");
+    
+	areaBandsFunc.x(function(d, i) {
+        return xScale(format.parse(d.day));
+    });
+	
+    areaBandsFunc.y0(function(d) {
+        var dayformat = d3.time.format("%a");
+        var day = dayformat(format.parse(d.day));
+        return yScale(averageDayVal[day]) - 50;
+    });
+    areaBandsFunc.y1(function(d) {
+        var dayformat = d3.time.format("%a");
+        var day = dayformat(format.parse(d.day));
+        return yScale(averageDayVal[day]) + 50;
+    });
+
+    var lineFunc = d3.svg.line()
+        .x(function(d, i) {
+            return xScale(format.parse(d.day));
+        })
+        .y(function(d) {
+            return yScale(d.rowDailyCount);
+        })
+        .interpolate("monotone");
+
+    var averageDayVal = {
+        "Mon": 5300000,
+        "Tue": 6300000,
+        "Wed": 7300000,
+        "Thu": 4800000,
+        "Fri": 6300000,
+        "Sat": 7700000,
+        "Sun": 8200000
+    }
+
+    var averageLineFunc = d3.svg.line()
+        .x(function(d, i) {
+            return xScale(format.parse(d.day));
+        })
+        .y(function(d) {
+            var dayformat = d3.time.format("%a");
+            var day = dayformat(format.parse(d.day));
+            return yScale(averageDayVal[day]);
+        })
+        .interpolate("monotone");
+
+    var meanLineFunc = d3.svg.line()
+        .x(function(d, i) {
+            return xScale(format.parse(d.day));
+        })
+        .y(function(d) {
+            return yScale(6000000);
+        })
+        .interpolate("linear");
+
+    var svg = d3.select("body").append("svg").attr('class', 'chart').attr({
+        width: w,
+        height: h
+    });
+
+	//draw tolerance interval.
+    var areaChart = svg.append("path").attr({
+        d: areaBandsFunc(ds),
+        "stroke": "#E4E4E4",
+        "stroke-width": 1,
+        "fill": "#E4E4E4",
+        "opacity": 0.6
+    });
+
+	//draw a white layer prevent the data graph bleed.
+    svg.append('rect')
+        .attr("width", w)
+        .attr("height", "200")
+        .attr("transform", 'translate(0, ' + (h - margin.bottom) + ')')
+        .attr("fill", "white");
+
+	//draw vertical grid.
+    svg.append('g')
+        .attr('class', 'x axis grid')
+        .attr('transform', 'translate(0, ' + (h - margin.bottom) + ')')
+        .call(xAxis);
+
+	//draw horizontal grid.
+    svg.append('g')
+        .attr('class', 'y axis grid')
+        .attr('transform', "translate(" + margin.left + ",0)")
+        .call(yAxis);
 		
-		
-dc.renderAll();
-*/
+	//draw average line.
+    var averageLineChart = svg.append("path").attr({
+        d: averageLineFunc(ds),
+        "stroke": "gray",
+        "stroke-width": 2,
+        "fill": "none",
+        "opacity": "0.3"
+    });
+
+	//draw mean line.
+    var meanLineChart = svg.append("path").attr({
+        d: meanLineFunc(ds),
+        "stroke": "gray",
+        "stroke-width": 2,
+        "fill": "none",
+        "opacity": "0.3"
+    }).style("stroke-dasharray", ("3, 3"));
+
+	//draw main line.
+    var lineChart = svg.append("path").attr({
+        d: lineFunc(ds),
+        "stroke": "black",
+        "stroke-width": 2.5,
+        "fill": "none"
+    });
+
+	//draw data point circle.
+    var dots = svg.selectAll("circle")
+        .data(ds)
+        .enter()
+        .append("circle")
+        .attr({
+            cx: function(d, i) {
+                return xScale(format.parse(d.day));
+            },
+            cy: function(d) {
+                return yScale(d.rowDailyCount);
+            },
+            r: 5,
+            "fill": function(d) {
+                if (d["indicator"] === "N") {
+                    return "black"
+                } else {
+                    return "red"
+                }
+            },
+            "stroke": "black"
+        });
+};
